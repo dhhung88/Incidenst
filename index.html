@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#2c3e50">
-  <title>Báo Sự Cố </title>
+  <title>Báo Sự Cố - Sukiya POS</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script type="module">
     import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -37,11 +37,9 @@
       "Khác": ["Khác"]
     };
 
-    let systemKnowledgeBase = [];
     let allStores = [];
 
     async function initPage() {
-      // 1. Tải danh sách cửa hàng trực tiếp từ Firestore collection 'stores'
       try {
         const sSnap = await getDocs(collection(db, "stores"));
         if (!sSnap.empty) {
@@ -54,11 +52,10 @@
               address: data.address || "Chưa cập nhật"
             });
           });
-          // Sắp xếp danh sách cửa hàng theo mã code tăng dần
           allStores.sort((a, b) => a.code.localeCompare(b.code, undefined, {numeric: true}));
         }
       } catch(e) {
-        console.log("Lỗi tải cửa hàng từ Firebase:", e.message);
+        console.log("Lỗi tải cửa hàng:", e.message);
       }
 
       const storeSelect = document.getElementById('incStoreCode');
@@ -66,19 +63,13 @@
         storeSelect.innerHTML = `<option value="">-- Chọn Cửa Hàng của bạn (${allStores.length} chi nhánh) --</option>` + 
           allStores.map(s => `<option value="${s.code}">${s.code} - ${s.name}</option>`).join('');
       } else {
-        storeSelect.innerHTML = `<option value="">Không tải được danh sách cửa hàng từ Firebase</option>`;
+        storeSelect.innerHTML = `<option value="">Không tải được danh sách cửa hàng</option>`;
       }
 
       document.getElementById('incTicket').value = 'SC-' + Math.floor(100000 + Math.random() * 900000);
       
       const d = new Date();
       document.getElementById('incTime').value = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-
-      // 2. Tải Kho tri thức (Knowledge Base)
-      try {
-        const qSnap = await getDocs(collection(db, "knowledge_base"));
-        qSnap.forEach(doc => systemKnowledgeBase.push({ id: doc.id, ...doc.data() }));
-      } catch(e) { console.log("Không tải được KB:", e.message); }
     }
 
     window.onStoreChange = function() {
@@ -104,26 +95,6 @@
           opt.innerText = item;
           cat2Select.appendChild(opt);
       });
-      document.getElementById('inlineKbSuggestion').classList.add('hidden');
-    };
-
-    window.onCategory2Change = function() {
-      const selectedCategory2 = document.getElementById('incCategory2').value;
-      const suggestionBox = document.getElementById('inlineKbSuggestion');
-      const suggestionContent = document.getElementById('inlineKbContent');
-      if (!selectedCategory2) { suggestionBox.classList.add('hidden'); return; }
-
-      const matchedKBs = systemKnowledgeBase.filter(kb => 
-          kb.category2 === selectedCategory2 || (kb.title && kb.title.toLowerCase().includes(selectedCategory2.toLowerCase()))
-      );
-
-      if (matchedKBs.length > 0) {
-          suggestionContent.innerHTML = matchedKBs.map(kb => {
-              const stepsHtml = Array.isArray(kb.steps) ? kb.steps.map(s => `<li>${s}</li>`).join('') : `<li>${kb.steps}</li>`;
-              return `<div class="mb-2 last:mb-0"><div class="font-bold text-blue-900">💡 Gợi ý xử lý: ${kb.title}</div><ul class="list-disc pl-4 text-gray-700 mt-0.5 space-y-0.5">${stepsHtml}</ul></div>`;
-          }).join('');
-          suggestionBox.classList.remove('hidden');
-      } else { suggestionBox.classList.add('hidden'); }
     };
 
     async function compressImageFile(file, maxWidth = 600, quality = 0.7) {
@@ -206,7 +177,7 @@
         document.getElementById('successScreen').classList.remove('hidden');
         document.getElementById('mainFormContainer').classList.add('hidden');
       } catch(e) {
-          errorBox.innerText = "Lỗi gửi phiếu (Kiểm tra quyền ghi Firebase Rules): " + e.message;
+          errorBox.innerText = "Lỗi gửi phiếu: " + e.message;
           errorBox.classList.remove('hidden');
           btn.disabled = false; btn.innerText = "Gửi Yêu Cầu Hỗ Trợ";
       }
@@ -219,7 +190,7 @@
 
   <div class="bg-white rounded-2xl shadow-xl p-4 sm:p-6 w-full max-w-lg border border-gray-200 my-auto">
     <div class="text-center pb-4 mb-4 border-b">
-      <div class="text-2xl font-black text-amber-600 mb-1">⚠️ IT Incindenst</div>
+      <div class="text-2xl font-black text-amber-600 mb-1">⚠️ Sukiya POS</div>
       <h1 class="text-lg font-bold text-slate-800">Báo Cáo Sự Cố Kỹ Thuật</h1>
       <p class="text-xs text-gray-500">Dành cho nhân viên cửa hàng quét QR tại quầy</p>
     </div>
@@ -265,13 +236,9 @@
 
         <div>
           <label class="font-bold text-gray-700 block mb-1">* Chi tiết lỗi (Category 2)</label>
-          <select id="incCategory2" onchange="onCategory2Change()" class="w-full p-2.5 border rounded-lg font-semibold text-blue-900 bg-white" required>
+          <select id="incCategory2" class="w-full p-2.5 border rounded-lg font-semibold text-blue-900 bg-white" required>
             <option value="">-- Vui lòng chọn phân loại phía trên trước --</option>
           </select>
-        </div>
-
-        <div id="inlineKbSuggestion" class="hidden mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div id="inlineKbContent"></div>
         </div>
       </div>
 
