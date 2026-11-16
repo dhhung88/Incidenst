@@ -82,7 +82,7 @@
       const checkedCats = [];
       document.querySelectorAll('input[name="incCategory"]:checked').forEach(cb => checkedCats.push(cb.value));
       const cat2Select = document.getElementById('incCategory2');
-      cat2Select.innerHTML = `<option value="">-- Chọn Chi tiết lỗi (Category 2) --</option>`;
+      cat2Select.innerHTML = `<option value="">-- Chọn Chi tiết lỗi (Tùy chọn) --</option>`;
       
       let subList = [];
       checkedCats.forEach(cat => {
@@ -142,17 +142,13 @@
       const errorBox = document.getElementById('formErrorMsg');
 
       errorBox.classList.add('hidden');
-      if (!storeCode || !contactPerson || !phoneNumber || !issue || !category2) {
-          errorBox.innerText = "Vui lòng chọn Cửa hàng, điền đầy đủ thông tin và Chi tiết lỗi (*)!";
+      if (!storeCode || !contactPerson || !phoneNumber || !issue) {
+          errorBox.innerText = "Vui lòng chọn Cửa hàng, điền Tên, Số điện thoại và Mô tả chi tiết sự cố!";
           errorBox.classList.remove('hidden'); window.scrollTo({top: 0, behavior: 'smooth'}); return;
       }
 
       const categories = [];
       document.querySelectorAll('input[name="incCategory"]:checked').forEach(cb => categories.push(cb.value));
-      if (categories.length === 0) {
-          errorBox.innerText = "Vui lòng chọn ít nhất một Phân loại lỗi chính!";
-          errorBox.classList.remove('hidden'); return;
-      }
 
       const btn = document.getElementById('btnSubmit');
       btn.disabled = true; btn.innerText = "Đang gửi báo cáo...";
@@ -163,15 +159,28 @@
 
         const nowIso = new Date().toISOString();
         const incData = {
-          id: incId, storeCode, contactPerson, phoneNumber, categories, category2, issue, imageUrl,
-          status: "Mới ghi nhận", assignee: "Chưa gán", tempSolution: "", result: "", resolvedAt: null,
-          createdAt: nowIso, updatedAt: nowIso, reportedBy: contactPerson,
+          id: incId, 
+          storeCode, 
+          contactPerson, 
+          phoneNumber, 
+          categories: categories.length > 0 ? categories : ["Khác"], 
+          category2: category2 || "Khác", 
+          issue, 
+          imageUrl,
+          status: "Mới ghi nhận", 
+          assignee: "Chưa gán", 
+          tempSolution: "", 
+          result: "", 
+          resolvedAt: null,
+          createdAt: nowIso, 
+          updatedAt: nowIso, 
+          reportedBy: contactPerson,
           auditLog: [{ time: nowIso, user: contactPerson, action: "Nhân viên tạo phiếu báo sự cố từ QR" }]
         };
 
         await setDoc(doc(db, "incidents", incId), incData);
 
-        const message = `🚨 <b>SỰ CỐ MỚI TỪ CỬA HÀNG (QR)</b> 🚨\n<b>Mã phiếu:</b> ${incId}\n<b>Cửa hàng:</b> ${storeCode}\n<b>Người báo:</b> ${contactPerson} (${phoneNumber})\n<b>Phân loại:</b> ${categories.join(', ')} (${category2})\n<b>Mô tả:</b> <i>${issue}</i>`;
+        const message = `🚨 <b>SỰ CỐ MỚI TỪ CỬA HÀNG (QR)</b> 🚨\n<b>Mã phiếu:</b> ${incId}\n<b>Cửa hàng:</b> ${storeCode}\n<b>Người báo:</b> ${contactPerson} (${phoneNumber})\n<b>Phân loại:</b> ${categories.join(', ') || 'Chưa chọn'} (${category2 || 'Chưa chọn'})\n<b>Mô tả:</b> <i>${issue}</i>`;
         fetch(GOOGLE_SCRIPT_URL, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "sendTelegram", message }) }).catch(()=>{});
 
         document.getElementById('successScreen').classList.remove('hidden');
@@ -222,7 +231,7 @@
       </div>
 
       <div class="border-t pt-3">
-        <label class="font-bold text-gray-700 block mb-2">* Phân loại lỗi chính (chọn ít nhất 1)</label>
+        <label class="font-bold text-gray-700 block mb-2">Phân loại lỗi chính (Tùy chọn)</label>
         <div class="grid grid-cols-2 gap-2 mb-3">
           <label class="flex items-center gap-1.5"><input type="checkbox" name="incCategory" value="Network" onchange="onCategoryChange()"> Network / Mạng</label>
           <label class="flex items-center gap-1.5"><input type="checkbox" name="incCategory" value="POS" onchange="onCategoryChange()"> POS / Máy tính tiền</label>
@@ -235,9 +244,9 @@
         </div>
 
         <div>
-          <label class="font-bold text-gray-700 block mb-1">* Chi tiết lỗi (Category 2)</label>
-          <select id="incCategory2" class="w-full p-2.5 border rounded-lg font-semibold text-blue-900 bg-white" required>
-            <option value="">-- Vui lòng chọn phân loại phía trên trước --</option>
+          <label class="font-bold text-gray-700 block mb-1">Chi tiết lỗi (Category 2 - Tùy chọn)</label>
+          <select id="incCategory2" class="w-full p-2.5 border rounded-lg font-semibold text-blue-900 bg-white">
+            <option value="">-- Chọn Chi tiết lỗi (Tùy chọn) --</option>
           </select>
         </div>
       </div>
@@ -248,7 +257,7 @@
       </div>
 
       <div>
-        <label class="font-bold text-gray-700 block mb-1">📸 Chụp ảnh hiện trường (Bắt buộc nếu lỗi thiết bị)</label>
+        <label class="font-bold text-gray-700 block mb-1">📸 Chụp ảnh hiện trường (Tùy chọn)</label>
         <input type="file" id="incImage" accept="image/*" capture="environment" onchange="previewImage(event)" class="w-full p-2 border rounded-lg bg-slate-50">
         <div id="imagePreviewContainer" class="hidden mt-2 text-center"><img id="imagePreview" class="h-32 object-contain mx-auto rounded border shadow-sm"></div>
       </div>
